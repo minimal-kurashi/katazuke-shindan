@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>片付かない原因診断</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --main: #8FA882;
+    --sub: #D9D0C0;
+    --base: #F5F0E8;
+    --accent: #A67C52;
+    --text: #3D3D3A;
+    --line: #06C755;
+  }
+
+  body {
+    background: var(--base);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px 0 40px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+    padding: 0 20px;
+  }
+
+  /* ===== SCREEN ===== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== TOP SCREEN ===== */
+  .top-header {
+    text-align: center;
+    padding: 40px 0 28px;
+  }
+
+  .icon-circle {
+    width: 80px;
+    height: 80px;
+    background: var(--main);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+  }
+
+  .top-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .top-header p {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #5a5a56;
+  }
+
+  .meta-list {
+    margin: 28px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #5a5a56;
+  }
+
+  .meta-item svg {
+    flex-shrink: 0;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { opacity: .85; transform: scale(.98); }
+
+  .btn-main {
+    background: var(--main);
+    color: white;
+  }
+
+  .btn-outline {
+    background: white;
+    color: var(--text);
+    border: 1.5px solid var(--sub);
+  }
+
+  .btn-line {
+    background: var(--line);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-sm {
+    padding: 11px 20px;
+    font-size: 14px;
+    width: auto;
+    border-radius: 10px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn-row .btn { flex: 1; }
+
+  /* ===== QUIZ SCREEN ===== */
+  .progress-wrap {
+    margin: 24px 0 20px;
+  }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .step-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--main);
+  }
+
+  .pct-label {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .progress-bar-bg {
+    height: 8px;
+    background: var(--sub);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--main);
+    border-radius: 99px;
+    transition: width .35s ease;
+  }
+
+  .q-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 99px;
+    margin-bottom: 12px;
+  }
+
+  .q-text {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: white;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    text-align: left;
+  }
+
+  .choice:hover { border-color: var(--sub); }
+
+  .choice.selected {
+    border-color: var(--main);
+    background: #f0f5ee;
+  }
+
+  .choice-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--sub);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, background .15s;
+  }
+
+  .choice.selected .choice-dot {
+    border-color: var(--main);
+    background: var(--main);
+  }
+
+  .choice.selected .choice-dot::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+  }
+
+  .choice-label {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  /* ===== RESULT SCREEN ===== */
+  .result-title {
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    margin: 28px 0 20px;
+  }
+
+  .result-card {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 14px;
+  }
+
+  .type-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 99px;
+    margin-bottom: 10px;
+  }
+
+  .type-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .type-desc {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #5a5a56;
+  }
+
+  .card-heading {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--main);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-list li {
+    font-size: 14px;
+    line-height: 1.6;
+    padding-left: 18px;
+    position: relative;
+    color: #5a5a56;
+  }
+
+  .card-list li::before {
+    content: '•';
+    color: var(--main);
+    font-weight: 700;
+    position: absolute;
+    left: 4px;
+  }
+
+  .profile-block {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 12px;
+    border: 3px solid var(--sub);
+  }
+
+  .profile-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .profile-text {
+    font-size: 13px;
+    color: #5a5a56;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .profile-cta {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 18px;
+    color: var(--text);
+  }
+
+  .retry-wrap {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== 画面① トップ ===== -->
+  <div id="screen-top" class="screen active">
+    <div class="top-header">
+      <div class="icon-circle">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 18L20 5L35 18V37H26V27H14V37H5V18Z" fill="white"/>
+          <rect x="16" y="29" width="8" height="8" rx="1" fill="#8FA882"/>
+        </svg>
+      </div>
+      <h1>なぜ片付かないのか、<br>原因がわかります</h1>
+      <p>「片付けなきゃ」と思っているのに、なぜかうまくいかない。その原因は人によって違います。5つの質問に答えて、あなたの原因タイプを見つけましょう。</p>
+    </div>
+
+    <div class="meta-list">
+      <div class="meta-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="8.5" stroke="#8FA882" stroke-width="1.5"/>
+          <path d="M10 6V10.5L13 12.5" stroke="#8FA882" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        所要時間 約1分
+      </div>
+      <div class="meta-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2C10 2 4 5.5 4 11C4 14.31 6.69 17 10 17C13.31 17 16 14.31 16 11C16 5.5 10 2 10 2Z" stroke="#8FA882" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M10 11L7.5 8.5" stroke="#8FA882" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        登録不要・無料
+      </div>
+      <div class="meta-item">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="7" r="3.5" stroke="#8FA882" stroke-width="1.5"/>
+          <path d="M4 17C4 14.24 6.69 12 10 12C13.31 12 16 14.24 16 17" stroke="#8FA882" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        整理収納アドバイザー監修
+      </div>
+    </div>
+
+    <button class="btn btn-main" onclick="startQuiz()">診断をはじめる</button>
+  </div>
+
+  <!-- ===== 画面② 質問 ===== -->
+  <div id="screen-quiz" class="screen">
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span class="step-label" id="step-label">STEP 1/5</span>
+        <span class="pct-label" id="pct-label">20%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill" style="width:20%"></div>
+      </div>
+    </div>
+
+    <div class="q-badge" id="q-badge">Q1</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="choices" id="choices"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="prevQ()">戻る</button>
+      <button class="btn btn-main btn-sm" id="next-btn" onclick="nextQ()" disabled>次へ</button>
+    </div>
+  </div>
+
+  <!-- ===== 画面③ 結果 ===== -->
+  <div id="screen-result" class="screen">
+    <div class="result-title">診断結果</div>
+
+    <div class="result-card">
+      <div class="type-badge" id="result-badge"></div>
+      <div class="type-name" id="result-name"></div>
+      <div class="type-desc" id="result-desc"></div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-heading">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="#8FA882" stroke-width="1.4"/>
+          <path d="M8 5V8.5" stroke="#8FA882" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="8" cy="11" r=".7" fill="#8FA882"/>
+        </svg>
+        このタイプの特徴
+      </div>
+      <ul class="card-list" id="result-features"></ul>
+    </div>
+
+    <div class="result-card">
+      <div class="card-heading">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8.5L6.5 12L13 5" stroke="#8FA882" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        まず取り組むべきこと
+      </div>
+      <ul class="card-list" id="result-actions"></ul>
+    </div>
+
+    <div class="profile-block">
+      <img src="profile.png" alt="かな" class="profile-img" onerror="this.style.background='#D9D0C0';this.removeAttribute('src')">
+      <div class="profile-name">オンライン片付けアドバイザー｜かな</div>
+      <div class="profile-text">具体的なお悩みの無料個別相談（30分）もしています。</div>
+      <div class="profile-cta">LINEから「個別相談」の4文字を<br>送ってくださいね！</div>
+      <a href="https://lin.ee/PADDuYq" class="btn btn-line">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect width="22" height="22" rx="6" fill="white" fill-opacity=".25"/>
+          <path d="M11 4C7.13 4 4 6.76 4 10.17C4 13.21 6.57 15.74 10.12 16.25L10.5 16.31V17.75C10.5 17.89 10.62 18 10.75 18C10.82 18 10.88 17.97 10.93 17.92L13.1 15.92C15.87 15.07 18 12.8 18 10.17C18 6.76 14.87 4 11 4Z" fill="white"/>
+          <circle cx="8.5" cy="10.5" r="1" fill="#06C755"/>
+          <circle cx="11" cy="10.5" r="1" fill="#06C755"/>
+          <circle cx="13.5" cy="10.5" r="1" fill="#06C755"/>
+        </svg>
+        LINEから相談する（無料）
+      </a>
+    </div>
+
+    <div class="retry-wrap">
+      <button class="btn btn-outline" onclick="restart()">もう一度診断する</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  {
+    text: "家の中で一番気になる場所はどこですか？",
+    choices: [
+      { label: "クローゼットや押し入れ（モノがぎゅうぎゅう）", type: "sutenai" },
+      { label: "リビングや床（家族のモノが散乱している）", type: "kazoku" },
+      { label: "どこもかしこも気になって、全部いっぺんにやりたくなる", type: "mayoi" },
+      { label: "思い出のモノが各部屋に点在している", type: "shuchaku" },
+      { label: "気になるけど、平日は見ないふりをしている", type: "jikan" },
+    ]
+  },
+  {
+    text: "片付けようとしたとき、最初に起きることは？",
+    choices: [
+      { label: "「まだ使えるかも」と捨てようとすると手が止まる", type: "sutenai" },
+      { label: "「どこから手をつければ…」と考えているうちに時間が過ぎる", type: "mayoi" },
+      { label: "自分は動けるが、家族が散らかしてすぐ元通りになる", type: "kazoku" },
+      { label: "やる気はあるのに、仕事や育児でそもそも時間が取れない", type: "jikan" },
+      { label: "モノを手に取ると思い出がよみがえって、なかなか進まない", type: "shuchaku" },
+    ]
+  },
+  {
+    text: "手放せないモノはどんなものが多いですか？",
+    choices: [
+      { label: "まだ使える日用品、ストック品、いただきもの", type: "sutenai" },
+      { label: "子どもの作品、昔の写真、プレゼントでもらったもの", type: "shuchaku" },
+      { label: "家族が「捨てないで」と言うもの", type: "kazoku" },
+      { label: "手放せるものはわかっているが、作業する時間がない", type: "jikan" },
+      { label: "何が必要で何が不要かの判断自体が難しい", type: "mayoi" },
+    ]
+  },
+  {
+    text: "片付けに対して、今どんな気持ちに近いですか？",
+    choices: [
+      { label: "やらなきゃとわかっているが、どうしても踏み出せない", type: "mayoi" },
+      { label: "自分だけじゃどうにもならないと感じている", type: "kazoku" },
+      { label: "捨てることに罪悪感や抵抗感がある", type: "sutenai" },
+      { label: "時間さえあればできると思っている", type: "jikan" },
+      { label: "モノへの罪悪感はないが、感情的につながっていて離れられない", type: "shuchaku" },
+    ]
+  },
+  {
+    text: "理想の暮らしに近いのはどれですか？",
+    choices: [
+      { label: "モノが少なく、スッキリとした空間", type: "sutenai" },
+      { label: "考えなくても自然と片付く、仕組みのある家", type: "mayoi" },
+      { label: "家族みんなが自分で片付けられる家", type: "kazoku" },
+      { label: "短時間でサッと整えられる、ムダのない暮らし", type: "jikan" },
+      { label: "大切なモノを美しく飾り、残りはスッキリさせた家", type: "shuchaku" },
+    ]
+  }
+];
+
+const results = {
+  sutenai: {
+    badge: "タイプ①",
+    name: "もったいない・捨てられない型",
+    desc: "「まだ使えるかも」「いつか使うかも」が口グセ。モノへの罪悪感が強く、増える一方で収納が限界になっています。",
+    features: [
+      "ストック品や消耗品が必要以上に多い",
+      "いただきものや景品を捨てられない",
+      "「もったいない」という気持ちが判断を止めてしまう"
+    ],
+    actions: [
+      "「1年以上使っていないもの」だけを対象に、まず量を把握する",
+      "手放すのではなく「寄付・譲る」選択肢を取り入れてみる",
+      "新しくモノを買うときに「何かと入れ替える」ルールを決める"
+    ]
+  },
+  mayoi: {
+    badge: "タイプ②",
+    name: "どこから始めればいい？迷子型",
+    desc: "やる気はあるのに、いざ始めるとフリーズしてしまうタイプ。完璧にやろうとするあまり、最初の一歩が踏み出せません。",
+    features: [
+      "「全部いっぺんにやりたい」という気持ちが強い",
+      "どこから手をつければいいかわからなくなる",
+      "完璧にできないなら、やらない方がいいと思ってしまう"
+    ],
+    actions: [
+      "「引き出し1つだけ」など、超小さな範囲から始める",
+      "まず全部出して「見える化」することだけをゴールにする",
+      "完成形より「昨日より少し減った」を成功の基準にする"
+    ]
+  },
+  kazoku: {
+    badge: "タイプ③",
+    name: "家族が協力してくれない・他責型",
+    desc: "自分は片付けたいのに、パートナーや子どもが散らかしてしまうタイプ。一人の努力では解決できない構造的な問題があります。",
+    features: [
+      "片付けても家族がすぐ元に戻してしまう",
+      "家族のモノの扱いに、ストレスを感じることが多い",
+      "「自分だけ頑張っている」と感じることがある"
+    ],
+    actions: [
+      "家族それぞれの「帰ってきたらまず置く場所」を一緒に決める",
+      "ルールを押しつけず「どうすれば楽になるか」を家族で話し合う",
+      "子どもには自分で管理できる量に絞った収納を作る"
+    ]
+  },
+  jikan: {
+    badge: "タイプ④",
+    name: "忙しくて手が回らない・時間不足型",
+    desc: "片付けたい気持ちも、やり方もわかっている。でも仕事・育児・家事で、時間とエネルギーが足りないタイプ。",
+    features: [
+      "平日は片付けを見ないふりをしてしまう",
+      "週末にまとめてやろうと思うが、疲れてできない",
+      "「時間さえあれば」といつも思っている"
+    ],
+    actions: [
+      "「1日1か所・5分だけ」のルーティンを朝か夜に組み込む",
+      "使ったら戻す「1アクション収納」に見直して、維持コストを下げる",
+      "まず「散らかりやすい場所だけ」に絞って仕組みを作る"
+    ]
+  },
+  shuchaku: {
+    badge: "タイプ⑤",
+    name: "思い出・感情が邪魔をする・執着型",
+    desc: "モノに感情的なつながりがあり、論理では手放せないタイプ。「捨てる＝大切な記憶を捨てる」と感じてしまいます。",
+    features: [
+      "子どもの作品、昔のプレゼント、故人の遺品が捨てられない",
+      "モノを手に取ると思い出がよみがえり、作業が止まってしまう",
+      "「捨てる」という言葉自体に抵抗がある"
+    ],
+    actions: [
+      "「捨てる」ではなく「写真に残してデジタル保存」する方法を試す",
+      "思い出ボックスを1つ決めて、その中に収まる量だけ残すルールにする",
+      "まず感情が動かない「今の自分には関係ないモノ」から始める"
+    ]
+  }
+};
+
+let currentQ = 0;
+let answers = []; // answers[i] = type string
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startQuiz() {
+  currentQ = 0;
+  answers = [];
+  renderQuestion();
+  showScreen('screen-quiz');
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  const step = currentQ + 1;
+  const pct = Math.round(step / 5 * 100);
+
+  document.getElementById('step-label').textContent = `STEP ${step}/5`;
+  document.getElementById('pct-label').textContent = `${pct}%`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('q-badge').textContent = `Q${step}`;
+  document.getElementById('q-text').textContent = q.text;
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.textContent = currentQ === 4 ? '結果を見る' : '次へ';
+  nextBtn.disabled = answers[currentQ] === undefined;
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'choice' + (answers[currentQ] === c.type ? ' selected' : '');
+    div.innerHTML = `<div class="choice-dot"></div><div class="choice-label">${c.label}</div>`;
+    div.addEventListener('click', () => selectChoice(c.type));
+    choicesEl.appendChild(div);
+  });
+}
+
+function selectChoice(type) {
+  answers[currentQ] = type;
+  document.getElementById('next-btn').disabled = false;
+
+  const q = questions[currentQ];
+  document.querySelectorAll('.choice').forEach((el, i) => {
+    el.classList.toggle('selected', q.choices[i].type === type);
+  });
+}
+
+function nextQ() {
+  if (answers[currentQ] === undefined) return;
+  if (currentQ < 4) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function prevQ() {
+  if (currentQ === 0) {
+    showScreen('screen-top');
+  } else {
+    currentQ--;
+    renderQuestion();
+  }
+}
+
+function showResult() {
+  // カウント集計（Q1〜Q5の重み、Q3〜Q5は2倍）
+  const weights = [1, 1, 2, 2, 2];
+  const counts = { sutenai: 0, mayoi: 0, kazoku: 0, jikan: 0, shuchaku: 0 };
+  answers.forEach((type, i) => {
+    counts[type] += weights[i];
+  });
+
+  // 最多タイプ
+  const winner = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  const r = results[winner];
+
+  document.getElementById('result-badge').textContent = r.badge;
+  document.getElementById('result-name').textContent = r.name;
+  document.getElementById('result-desc').textContent = r.desc;
+
+  const featuresEl = document.getElementById('result-features');
+  featuresEl.innerHTML = r.features.map(f => `<li>${f}</li>`).join('');
+
+  const actionsEl = document.getElementById('result-actions');
+  actionsEl.innerHTML = r.actions.map(a => `<li>${a}</li>`).join('');
+
+  showScreen('screen-result');
+}
+
+function restart() {
+  startQuiz();
+}
+</script>
+</body>
+</html>
